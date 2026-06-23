@@ -1,0 +1,11 @@
+# Force LF line endings for files that need them.
+# Windows checkouts would otherwise get CRLF, which GitHub Actions YAML parser
+# and Docker can both be picky about.
+*.yml         text eol=lf
+*.yaml        text eol=lf
+Dockerfile    text eol=lf
+*.py          text eol=lf
+*.txt         text eol=lf
+*.sh          text eol=lf
+.gitignore    text eol=lf
+.gitattributes text eol=lf
