@@ -54,10 +54,11 @@ AUDIO_TOKEN_HI = AUDIO_TOKEN_LO + FRAMES_PER_GROUP * CODEBOOK_SIZE
 SAMPLE_RATE = 24000
 
 DEFAULT_SPEAKER = "salt_eng_0002"
-# 2400 tokens ≈ 18-20s of audio per Sunbird README. Raise via per-request param
-# for legal-research replies that need more coverage (vLLM is fast enough that
-# 4000-6000 tokens stays within ~30-45s of generation).
-DEFAULT_MAX_TOKENS = 2400
+# 4000 tokens ≈ 30s of audio per Sunbird README (1200 → 9-10s, scale linearly).
+# Generation time scales too (~35 tok/s on L4 = 114s wall for 4000 tokens
+# single-call). For long legal replies, the backend splits into parallel
+# segments via vLLM batching, so per-segment cost stays reasonable.
+DEFAULT_MAX_TOKENS = 4000
 DEFAULT_TEMPERATURE = 0.6
 DEFAULT_TOP_P = 0.95
 DEFAULT_REPETITION_PENALTY = 1.1
@@ -99,9 +100,13 @@ async def load_model_and_codec():
     logger.info("Model downloaded to %s (%.1fs)", model_path, time.time() - t0)
 
     logger.info("Loading vLLM engine")
+    # dtype="float16" works on both T4 (compute 7.5) and L4 (compute 8.9).
+    # bfloat16 would be preferable (matches the model's training precision)
+    # but it requires compute capability 8.0+, which excludes T4. Quality
+    # difference on TTS is imperceptible in practice.
     llm = LLM(
         model=model_path,
-        dtype="bfloat16",
+        dtype="float16",
         max_model_len=4096,
         gpu_memory_utilization=0.80,
         enforce_eager=False,
